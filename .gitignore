@@ -1,0 +1,4 @@
+kernel.elf
+bochslog.txt
+*.o
+*.swp
