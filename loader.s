@@ -15,13 +15,8 @@ loader:                         ; the loader label (defined as entry point in li
 mov esp, kernel_stack + KERNEL_STACK_SIZE   ; point esp to the start of the
 
 ; The assembly code
-
-push dword 3            ; arg3
-push dword 2            ; arg2
-push dword 1            ; arg1
-;mov [0x000B8000], dword 0x4128
-extern go.kernel.SumOfThree   ; the function sum_of_three is defined elsewhere
-call go.kernel.SumOfThree       ; call the function, the result will be in eax
+extern go.kernel.Main     ; the function sum_of_three is defined elsewhere
+call go.kernel.Main       ; call the function, the result will be in eax
                                             ; stack (end of memory area)
 .loop:
 jmp .loop                   ; loop forever

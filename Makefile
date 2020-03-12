@@ -1,7 +1,14 @@
-GO_SOURCES = $(wildcard kernel/*.go)
-GO_OBJECTS = ${GO_SOURCES:.go=.o}
+SOURCE_DIRECTORY = .
 
-OBJECTS = ${GO_OBJECTS}
+get_object_file = $(addsuffix .o,$(join $(dir), $(shell basename $(dir))))
+
+GO_SOURCES     = $(shell find $(SOURCE_DIRECTORY) -name *.go)
+GO_SOURCE_DIRS = $(dir $(GO_SOURCES))
+GO_OBJECTS     = $(foreach dir,$(GO_SOURCE_DIRS),$(get_object_file))
+GO_INCLUDES    = $(addprefix -I,$(GO_SOURCE_DIRS))
+GO_LINKS       = $(addprefix -L,$(GO_SOURCE_DIRS))
+
+OBJECTS = ${GO_OBJECTS} loader.o
 
 GCCGO := gccgo
 GCCGOFLAGS = -fno-split-stack
@@ -14,7 +21,7 @@ ASFLAGS = -f elf
 
 all: os.iso
 
-kernel.elf: $(OBJECTS) loader.o
+kernel.elf: $(OBJECTS)
 	$(LD) $(LDFLAGS) $^ -o $@
 
 os.iso: kernel.elf
@@ -33,8 +40,8 @@ os.iso: kernel.elf
 %.o: %.s
 	$(AS) $(ASFLAGS) $< -o $@
 
-%.o: %.go
-	$(GCCGO) $(GCCGOFLAGS) -c $< -o $@
+$(GO_OBJECTS):
+	$(GCCGO) $(GCCGOFLAGS) -c $(shell ls $(dir $@)*.go) -o $@ $(GO_INCLUDES) $(GO_LINKS)
 
 run-bochs:
 	bochs -f bochsrc.txt -q
