@@ -15,8 +15,8 @@ loader:                         ; the loader label (defined as entry point in li
 mov esp, kernel_stack + KERNEL_STACK_SIZE   ; point esp to the start of the
 
 ; The assembly code
-extern go.kernel.Main     ; the function sum_of_three is defined elsewhere
-call go.kernel.Main       ; call the function, the result will be in eax
+extern kernel.Main     ; the function sum_of_three is defined elsewhere
+call kernel.Main       ; call the function, the result will be in eax
                                             ; stack (end of memory area)
 .loop:
 jmp .loop                   ; loop forever
@@ -24,6 +24,14 @@ jmp .loop                   ; loop forever
 ; define __go_runtime_error
 ; TODO: Add code to handle/print error
 __go_runtime_error:
+	ret
+
+global main.main
+main.main:
+	ret
+
+global __go_init_main
+__go_init_main:
 	ret
 
 KERNEL_STACK_SIZE equ 4 * 1024 * 1024                  ; size of stack in bytes

@@ -1,28 +1,36 @@
 SOURCE_DIRECTORY = .
+BUILD_DIRECTORY  = build/
 
-get_object_file = $(addsuffix .o,$(join $(dir), $(shell basename $(dir))))
+uniq=$(shell echo $(1) | tr " " "\n" | cat -n | sort -uk2 | sort -nk1| cut -f2- | tr "\n" " ")
 
-GO_SOURCES     = $(shell find $(SOURCE_DIRECTORY) -name *.go)
-GO_SOURCE_DIRS = $(dir $(GO_SOURCES))
-GO_OBJECTS     = $(foreach dir,$(GO_SOURCE_DIRS),$(get_object_file))
-GO_INCLUDES    = $(addprefix -I,$(GO_SOURCE_DIRS))
-GO_LINKS       = $(addprefix -L,$(GO_SOURCE_DIRS))
+GO_SOURCES     = $(shell find $(SOURCE_DIRECTORY) -name '*.go')
+GO_SOURCE_DIRS = $(call uniq,$(dir $(GO_SOURCES)))
+GO_OBJECTS     = $(GO_SOURCE_DIRS:/=.o)
 
-OBJECTS = ${GO_OBJECTS} loader.o
+AS_SOURCES     = $(shell find $(SOURCE_DIRECTORY) -name '*.s')
+AS_OBJECTS     = $(AS_SOURCES:.s=.s.o)
+
+OBJECTS = $(GO_OBJECTS) $(AS_OBJECTS)
+
+DEPS = $(addsuffix deps.mk,$(GO_SOURCE_DIRS))
 
 GCCGO := gccgo
 GCCGOFLAGS = -fno-split-stack
 
 LD := ld
-LDFLAGS = -T link.ld -m elf_i386
+LDFLAGS = -T link.ld -m elf_i386 -lgo -L/usr/lib/gcc/i686-linux-gnu/8/
 
 AS := nasm
 ASFLAGS = -f elf
 
+QEMU = qemu-system-i386
+
+-include $(DEPS)
+
 all: os.iso
 
 kernel.elf: $(OBJECTS)
-	$(LD) $(LDFLAGS) $^ -o $@
+	$(LD) $(LDFLAGS) $(addprefix $(BUILD_DIRECTORY),$^) -o $@
 
 os.iso: kernel.elf
 	cp kernel.elf iso/boot/kernel.elf
@@ -37,14 +45,33 @@ os.iso: kernel.elf
 		-o os.iso                       \
 		iso
 
-%.o: %.s
-	$(AS) $(ASFLAGS) $< -o $@
+.SECONDEXPANSION:
+REQ_AS_SOURCES = $(shell ls $(dir $(1))/*.s)
+$(AS_OBJECTS): %.s.o : $$(call REQ_AS_SOURCES,%.s.o)
+	$(eval CURRENT_DIR := $(dir $@))
+	$(eval AS_SOURCES  := $(shell ls $(CURRENT_DIR)*.s))
+	mkdir -p $(BUILD_DIRECTORY)$(CURRENT_DIR)
+	$(AS) $(ASFLAGS) $(AS_SOURCES) -o $(BUILD_DIRECTORY)$@
 
-$(GO_OBJECTS):
-	$(GCCGO) $(GCCGOFLAGS) -c $(shell ls $(dir $@)*.go) -o $@ $(GO_INCLUDES) $(GO_LINKS)
+.SECONDEXPANSION:
+REQ_GO_SOURCES = $(shell ls $(1)/*.go)
+$(GO_OBJECTS): %.o : $$(call REQ_GO_SOURCES,%)
+	$(eval CURRENT_DIR := $(subst .o,/,$@))
+	$(eval GO_SOURCES  := $(shell ls $(CURRENT_DIR)*.go))
+	mkdir -p $(BUILD_DIRECTORY)$(CURRENT_DIR)
+	$(GCCGO) $(GCCGOFLAGS) -fgo-pkgpath=$(CURRENT_DIR:/=) -c $(GO_SOURCES) \
+		-o $(BUILD_DIRECTORY)$@ -I$(BUILD_DIRECTORY) -L$(BUILD_DIRECTORY)
+
+.SECONDEXPANSION:
+$(DEPS): %.mk: $$(dir %)
+	$(eval CURRENT_DIR := $(dir $@))
+	./scripts/generate_go_deps.sh $(CURRENT_DIR)
 
 run-bochs:
 	bochs -f bochsrc.txt -q
+
+run-qemu:
+	$(QEMU) -cdrom os.iso
 
 build-docker:
 	docker build . -t littleosbook; \
@@ -54,4 +81,7 @@ build-docker:
 	docker rm littleosbook-container
 
 clean:
-	rm -rf *.o */*.o kernel.elf os.iso
+	rm -rf $(AS_OBJECTS) $(BUILD_DIRECTORY) kernel.elf os.iso
+
+clean-deps:
+	find . -name deps.mk | xargs -n1 rm

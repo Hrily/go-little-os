@@ -1,7 +1,7 @@
 package kernel
 
 import (
-	"display"
+	"kernel/display"
 )
 
 func Main() {
