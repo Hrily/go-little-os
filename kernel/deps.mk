@@ -1,1 +1,1 @@
-kernel.o : kernel/lib/display.o
+kernel.o : kernel/lib/io/serial.o

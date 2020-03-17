@@ -24,6 +24,7 @@ AS := nasm
 ASFLAGS = -f elf
 
 QEMU = qemu-system-i386
+QEMUFLAGS = -serial file:serial.out
 
 -include $(DEPS)
 
@@ -71,7 +72,7 @@ run-bochs:
 	bochs -f bochsrc.txt -q
 
 run-qemu:
-	$(QEMU) -cdrom os.iso
+	$(QEMU) -cdrom os.iso $(QEMUFLAGS)
 
 build-docker:
 	docker build . -t littleosbook; \

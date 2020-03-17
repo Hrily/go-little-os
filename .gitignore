@@ -1,4 +1,5 @@
 kernel.elf
 bochslog.txt
+serial.out
 *.o
 *.swp

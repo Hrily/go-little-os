@@ -10,6 +10,10 @@ The following are required for building this project:
 + `gccgo`: For compiling go files (without go runtime)
 + `nasm`: For compiling assembly based loader
 
+OR
+
++ `docker`: For building using container
+
 ## Usage
 
 ### Build
@@ -31,4 +35,9 @@ make build-docker
 Run the image using bochs
 ```
 make run-bochs
+```
+
+Run the image using qemu
+```
+make run-qemu
 ```
