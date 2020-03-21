@@ -1,15 +1,10 @@
 package kernel
 
 import (
-	"kernel/lib/io/serial"
+	"kernel/lib/logger"
 )
 
 // Main is the first function which is called
 func Main() {
-	com := serial.COM{
-		Port:        serial.SerialCOM1Base,
-		RateDivisor: 3,
-	}
-	com.Init()
-	com.Write("Hello World")
+	logger.COM().Debug("Hello World")
 }

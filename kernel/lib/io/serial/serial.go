@@ -9,6 +9,7 @@ import (
 type COM struct {
 	Port        uint16
 	RateDivisor uint16
+	isInit      bool
 }
 
 // Init
@@ -18,10 +19,13 @@ type COM struct {
 //   - line
 //   - modem
 func (c *COM) Init() {
-	c.configureBaudRate()
-	c.configureBuffers()
-	c.configureLine()
-	c.configureModem()
+	if !c.isInit {
+		c.configureBaudRate()
+		c.configureBuffers()
+		c.configureLine()
+		c.configureModem()
+		c.isInit = true
+	}
 }
 
 // Write writes given string on to the serial com port.
@@ -87,4 +91,14 @@ func (c *COM) configureModem() {
 func (c *COM) isTransmitFIFOEmpty() bool {
 	// 0x20 = 0010 0000
 	return (io.InB(serialLineStatusPort(c.Port)) & 0x20) > 0
+}
+
+var com1 = COM{
+	Port:        SerialCOM1Base,
+	RateDivisor: 3,
+}
+
+func COM1() *COM {
+	com1.Init()
+	return &com1
 }

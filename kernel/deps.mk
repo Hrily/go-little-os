@@ -1,1 +1,1 @@
-kernel.o : kernel/lib/io/serial.o
+kernel.o : kernel/lib/logger.o
