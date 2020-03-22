@@ -28,13 +28,19 @@ func (c *COM) Init() {
 	}
 }
 
+// WriteB writes given byte on to the serial com port.
+// Expects serial com port to be initialized,
+func (c COM) WriteB(b byte) {
+	for !c.isTransmitFIFOEmpty() {
+	}
+	io.OutB(c.Port, b)
+}
+
 // Write writes given string on to the serial com port.
 // Expects serial com port to be initialized,
 func (c *COM) Write(buffer string) uint32 {
 	for i := 0; i < len(buffer); i++ {
-		for !c.isTransmitFIFOEmpty() {
-		}
-		io.OutB(c.Port, buffer[i])
+		c.WriteB(buffer[i])
 	}
 	return uint32(len(buffer))
 }
