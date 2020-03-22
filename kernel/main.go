@@ -1,10 +1,10 @@
 package kernel
 
 import (
-	"kernel/lib/logger"
+	"kernel/lib/memory/gdt"
 )
 
 // Main is the first function which is called
 func Main() {
-	logger.COM().Debug("Hello World")
+	gdt.Init()
 }

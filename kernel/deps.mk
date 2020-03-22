@@ -1,1 +1,1 @@
-kernel.o : kernel/lib/logger.o
+kernel.o : kernel/lib/memory/gdt.o
