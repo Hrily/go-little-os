@@ -1,13 +1,13 @@
-global kernel_lib_memory_gdt.LoadGDT
+global kernel_modules_memory_gdt.LoadGDT
 
 gdtr DW 0 ; For limit storage
      DD 0 ; For base storage
 
-; kernel_lib_memory_gdt.LoadGDT
+; kernel_modules_memory_gdt.LoadGDT
 ; Loads gdt
 ; stack: [esp + 4] address to gdt struct
 ;        [esp + 8] size to gdt struct
-kernel_lib_memory_gdt.LoadGDT:
+kernel_modules_memory_gdt.LoadGDT:
 	mov  eax, [esp + 4]
 	mov  [gdtr + 2], eax
 	mov  ax, [esp + 8]

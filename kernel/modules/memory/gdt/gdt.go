@@ -34,7 +34,7 @@ var _gdtRecord = [5]DescriptorRecord{
 	0, 0, 0, 0, 0,
 }
 
-// LoadGDT loads gdt using lgdt instruction
+// LoadGDT loads gdt using lgdt instruction, defined in load.s
 func LoadGDT(gdtAddr uint32, gdtSize uint16)
 
 // Init initializes gdt and loads it

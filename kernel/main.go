@@ -1,10 +1,10 @@
 package kernel
 
 import (
-	"kernel/lib/memory/gdt"
+	"kernel/modules/init"
 )
 
 // Main is the first function which is called
 func Main() {
-	gdt.Init()
+	init.Init()
 }

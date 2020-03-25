@@ -1,1 +1,1 @@
-kernel.o : kernel/lib/memory/gdt.o
+kernel.o : kernel/modules/init.o
