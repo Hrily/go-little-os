@@ -15,7 +15,7 @@ OBJECTS = $(GO_OBJECTS) $(AS_OBJECTS)
 DEPS = $(addsuffix deps.mk,$(GO_SOURCE_DIRS))
 
 GCCGO := gccgo
-GCCGOFLAGS = -fno-split-stack
+GCCGOFLAGS = -fno-split-stack -fno-go-check-divide-zero
 
 LD := ld
 LDFLAGS = -T link.ld -m elf_i386 -lgo -L/usr/lib/gcc/i686-linux-gnu/8/
