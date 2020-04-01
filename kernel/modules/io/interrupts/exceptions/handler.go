@@ -45,4 +45,8 @@ func Handle(r models.Registers) {
 		return
 	}
 	logger.COM().Error(messages[r.IntNumber])
+	// Halting
+	logger.COM().Error("Halting")
+	for true {
+	}
 }

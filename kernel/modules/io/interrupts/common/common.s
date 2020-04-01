@@ -5,6 +5,7 @@ extern kernel_modules_io_interrupts_common.InterruptHandler
 ; and finally restores the stack frame.
 global kernel_modules_io_interrupts_common.interruptHandler
 kernel_modules_io_interrupts_common.interruptHandler:
+	cli
 	push ds
 	push es
 	push fs
@@ -23,4 +24,5 @@ kernel_modules_io_interrupts_common.interruptHandler:
 	pop es
 	pop ds
 	add esp, 8     ; Cleans up the pushed error code and pushed ISR number
+	sti
 	iret           ; pops 5 things at once: CS, EIP, EFLAGS, SS, and ESP!

@@ -4,18 +4,18 @@ import (
 	"kernel/lib/logger"
 	"kernel/modules/io/interrupts/exceptions"
 	"kernel/modules/io/interrupts/models"
+	"kernel/modules/io/interrupts/pic"
 )
 
 func InterruptHandler(r models.Registers) {
-	logger.COM().LogUint(logger.Error, "Interrupt occured with Number", uint64(r.IntNumber))
+	logger.COM().LogUint(logger.Info, "Interrupt occured with Number", uint64(r.IntNumber))
+	logger.COM().LogUint(logger.Info, "Interrupt error code", uint64(r.ErrCode))
 	switch {
-	case 0 <= r.IntNumber && r.IntNumber <= 31:
+	case 0x00 <= r.IntNumber && r.IntNumber <= 0x1f:
 		exceptions.Handle(r)
+	case 0x20 <= r.IntNumber && r.IntNumber <= 0x2f:
+		pic.Handle(r)
 	default:
 		logger.COM().Error("Unknown Interrupt")
-	}
-	// Halting
-	logger.COM().Error("Halting")
-	for true {
 	}
 }
