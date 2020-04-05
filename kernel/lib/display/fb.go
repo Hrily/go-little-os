@@ -7,16 +7,34 @@ import (
 
 // FrameBuffer represents the frame buffer
 type FrameBuffer struct {
-	pos uint16
-	fg  uint8
-	bg  uint8
+	pos    uint16
+	fg     uint8
+	bg     uint8
+	isInit bool
+}
+
+var fb = FrameBuffer{}
+
+func FB() *FrameBuffer {
+	fb.Init()
+	return &fb
 }
 
 // Init initializes the frame buffer
 func (fb *FrameBuffer) Init() {
+	if fb.isInit {
+		return
+	}
 	fb.pos = 0
-	fb.fg = White
+	fb.fg = Cyan
 	fb.bg = Black
+	fb.isInit = true
+	for i := 0; i < _frameBufferColumns*_frameBufferRows; i++ {
+		address := getFrameBufferAddress(uint32(i))
+		memory.PutB(address, ' ')
+		memory.PutB(address+1, getColorByte(fb.fg, fb.bg))
+	}
+	moveCursor(fb.pos)
 }
 
 /**
@@ -26,15 +44,17 @@ func (fb *FrameBuffer) Init() {
 // Write puts given string on screen
 func (fb *FrameBuffer) Write(buffer string) int {
 	for i := 0; i < len(buffer); i++ {
-		if isPositionModifier(buffer[i]) {
-			fb.handlePositionModifier(buffer[i])
-		} else {
-			fb.putChar(buffer[i])
-		}
-		fb.scrollIfNeeded()
+		fb.writeB(buffer[i])
 	}
 	moveCursor(fb.pos)
 	return len(buffer)
+}
+
+// WriteB puts given string on screen
+func (fb *FrameBuffer) WriteB(b byte) int {
+	fb.writeB(b)
+	moveCursor(fb.pos)
+	return 1
 }
 
 // SetFg sets foreground color of frame buffer
@@ -72,6 +92,15 @@ func (fb *FrameBuffer) ScrollUp(n uint32) {
  * Unexported Methods
  */
 
+func (fb *FrameBuffer) writeB(b byte) {
+	if isPositionModifier(b) {
+		fb.handlePositionModifier(b)
+	} else {
+		fb.putChar(b)
+	}
+	fb.scrollIfNeeded()
+}
+
 // writeCell writes given char to given cell
 func (fb *FrameBuffer) writeCell(char byte) {
 	address := getFrameBufferAddress(uint32(fb.pos))
@@ -90,7 +119,15 @@ func (fb *FrameBuffer) handlePositionModifier(char byte) {
 	case ascii.CR:
 		fb.pos -= (fb.pos % _frameBufferColumns)
 	case ascii.LF:
+		fb.pos -= (fb.pos % _frameBufferColumns)
 		fb.pos += _frameBufferColumns
+	case ascii.BS:
+		if fb.pos > 0 {
+			fb.pos--
+			fb.writeCell(' ')
+		}
+	case ascii.TAB:
+		fb.pos += _tabWidth
 	}
 }
 

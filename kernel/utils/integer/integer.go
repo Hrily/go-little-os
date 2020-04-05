@@ -14,3 +14,10 @@ func BoolToUInt32(b bool) uint32 {
 	}
 	return 0
 }
+
+func Uint32ToBool(n uint32) bool {
+	if n == 0 {
+		return false
+	}
+	return true
+}

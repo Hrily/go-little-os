@@ -28,7 +28,7 @@ func getFrameBufferAddress(pos uint32) uint32 {
 // charachter
 func isPositionModifier(char byte) bool {
 	switch char {
-	case ascii.CR, ascii.LF:
+	case ascii.CR, ascii.LF, ascii.BS, ascii.TAB:
 		return true
 	}
 	return false

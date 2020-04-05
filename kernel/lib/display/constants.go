@@ -33,4 +33,6 @@ const (
 	LightMagenta = 13
 	LightBrown   = 14
 	White        = 15
+
+	_tabWidth = 4
 )

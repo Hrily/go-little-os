@@ -2,6 +2,7 @@ package pic
 
 import (
 	"kernel/lib/io"
+	"kernel/modules/io/interrupts/pic/handlers/keyboard"
 	"kernel/modules/io/interrupts/utils"
 )
 
@@ -30,6 +31,7 @@ func remapPicIRQs() {
 
 func Load() {
 	remapPicIRQs()
+	keyboard.Load()
 
 	utils.LoadIntHandler(0x20, Int0x20)
 	utils.LoadIntHandler(0x21, Int0x21)
