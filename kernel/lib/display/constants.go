@@ -1,7 +1,7 @@
 package display
 
 const (
-	_frameBufferAddress = 0x000B8000
+	_frameBufferAddress = 0xC00B8000
 	_frameBufferRows    = 25
 	_frameBufferColumns = 80
 

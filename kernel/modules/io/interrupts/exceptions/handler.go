@@ -45,6 +45,7 @@ func Handle(r models.Registers) {
 		return
 	}
 	logger.COM().Error(messages[r.IntNumber])
+	logger.COM().LogUint(logger.Debug, "EIP", uint64(r.EIP))
 	// Halting
 	logger.COM().Error("Halting")
 	for true {
