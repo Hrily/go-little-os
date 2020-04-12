@@ -33,6 +33,7 @@ boot_page_directory:
 	; This page directory entry defines a 4MB page containing the kernel.
 	dd 0x00000083 + 0*0x400000
 	dd 0x00000083 + 1*0x400000
+	dd 0x00000083 + 2*0x400000
 	times (1024 - KERNEL_PAGE_NUMBER - 6) dd 0  ; Pages after the kernel image.
 
 section .text                  ; start of the text (code) section

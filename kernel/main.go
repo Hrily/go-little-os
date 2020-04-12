@@ -3,13 +3,14 @@ package kernel
 import (
 	"kernel/lib/logger"
 	"kernel/modules/init"
+	"kernel/modules/memory/paging"
 )
 
 type Params struct {
-	KernelVStartAddr int32
-	KernelVEndAddr   int32
-	KernelPStartAddr int32
-	KernelPEndAddr   int32
+	KernelVStartAddr uint32
+	KernelVEndAddr   uint32
+	KernelPStartAddr uint32
+	KernelPEndAddr   uint32
 }
 
 // Main is the first function which is called
@@ -27,4 +28,8 @@ func Main(p Params) {
 		logger.Info, "Kernel Physical End  ", uint64(p.KernelPEndAddr),
 	)
 	init.Init()
+	paging.LoadKernelPDT(
+		p.KernelPStartAddr, p.KernelVStartAddr,
+		p.KernelVEndAddr-p.KernelVStartAddr,
+	)
 }
