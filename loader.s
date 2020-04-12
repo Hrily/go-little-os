@@ -1,5 +1,3 @@
-global loader                   ; the entry symbol for ELF
-
 MAGIC_NUMBER equ 0x1BADB002     ; define the magic number constant
 FLAGS        equ 0x0            ; multiboot flags
 CHECKSUM     equ -MAGIC_NUMBER  ; calculate the checksum
@@ -35,12 +33,12 @@ boot_page_directory:
 	; This page directory entry defines a 4MB page containing the kernel.
 	dd 0x00000083 + 0*0x400000
 	dd 0x00000083 + 1*0x400000
-	dd 0x00000083 + 2*0x400000
 	times (1024 - KERNEL_PAGE_NUMBER - 6) dd 0  ; Pages after the kernel image.
 
 section .text                  ; start of the text (code) section
 
 ; setting up entry point for linker
+global loader                   ; the entry symbol for ELF
 loader equ (_loader - 0xC0000000)
 _loader:                         ; the loader label (defined as entry point in linker script)
 mov eax, (boot_page_directory - KERNEL_VIRTUAL_BASE)
@@ -78,6 +76,16 @@ higher_half:
 	mov esp, kernel_stack + KERNEL_STACK_SIZE   ; set up the stack
 
 	; The assembly code
+
+	; GRUB variables
+	extern kernel_virtual_start
+	extern kernel_virtual_end
+	extern kernel_physical_start
+	extern kernel_physical_end
+	push kernel_physical_end
+	push kernel_physical_start
+	push kernel_virtual_end
+	push kernel_virtual_start
 	extern kernel.Main     ; the function sum_of_three is defined elsewhere
 	call kernel.Main       ; call the function, the result will be in eax
 																							; stack (end of memory area)

@@ -1,1 +1,2 @@
-kernel.o : kernel/modules/init.o
+kernel.o : kernel/lib/logger.o \
+	kernel/modules/init.o

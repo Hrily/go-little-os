@@ -4,6 +4,10 @@ SECTIONS {
 
     . = 0xC0200000;          /* the code should be loaded at 3GB + 2 MB */
 
+		/* these labels get exported to the code files */
+    kernel_virtual_start  = .;
+    kernel_physical_start = . - 0xC0000000;
+
 		.multiboot ALIGN (0x1000) : AT(ADDR(.multiboot)-0xC0000000)
 		{
 				*(.multiboot)
@@ -30,4 +34,7 @@ SECTIONS {
         *(COMMON)            /* all COMMON sections from all files */
         *(.bss)              /* all bss sections from all files */
     }
+
+		kernel_virtual_end  = .;
+    kernel_physical_end = . - 0xC0000000;
 }
