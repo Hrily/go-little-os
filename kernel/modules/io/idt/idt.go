@@ -1,6 +1,8 @@
 package idt
 
-import "unsafe"
+import (
+	"unsafe"
+)
 
 var _idt = [256]DescriptorRecord{}
 
