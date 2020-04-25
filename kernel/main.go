@@ -2,19 +2,27 @@ package kernel
 
 import (
 	"kernel/lib/logger"
+	"kernel/models"
 	"kernel/modules/init"
-	"kernel/modules/memory/paging"
 )
 
-type Params struct {
-	KernelVStartAddr uint32
-	KernelVEndAddr   uint32
-	KernelPStartAddr uint32
-	KernelPEndAddr   uint32
+type I interface {
+	F()
+}
+
+type S struct{}
+
+func (s *S) F() {
+	logger.COM().Info("F()")
+}
+
+func f() {
+	var i I = &S{}
+	i.F()
 }
 
 // Main is the first function which is called
-func Main(p Params) {
+func Main(p models.KernelParams) {
 	logger.COM().LogUint(
 		logger.Info, "Kernel Virtual  Start", uint64(p.KernelVStartAddr),
 	)
@@ -27,9 +35,6 @@ func Main(p Params) {
 	logger.COM().LogUint(
 		logger.Info, "Kernel Physical End  ", uint64(p.KernelPEndAddr),
 	)
-	init.Init()
-	paging.LoadKernelPDT(
-		p.KernelPStartAddr, p.KernelVStartAddr,
-		p.KernelVEndAddr-p.KernelVStartAddr,
-	)
+	init.Init(p)
+	f()
 }

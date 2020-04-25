@@ -6,7 +6,8 @@ import (
 	"kernel/lib/logger"
 )
 
-var kernelPDT = PDT{}
+// GetKernelPDTAddr returns kernel's pdt
+func GetKernelPDTAddr() uint32
 
 // LoadPDT loads pdt. Defined in load.s
 // pdtAddr is the physical address of pdt.
@@ -18,6 +19,11 @@ func InvalidateTLB()
 
 // LoadKernelPDT loads page directory table for kernel
 func LoadKernelPDT(pAddr, vAddr, size uint32) {
+	// kernelPDT is defined in load.s since it requires 4KB alignment
+	kernelPDTAddr := GetKernelPDTAddr()
+	kernelPDT := (*PDT)(unsafe.Pointer(uintptr(kernelPDTAddr)))
+	logger.COM().LogUint(logger.Debug, "kernelPDTAddr", uint64(kernelPDTAddr))
+
 	// We'll load kernel in 4MB pages
 	var _4mb uint32 = 4 * 1024 * 1024
 	nPages := uint32(size / _4mb)
@@ -47,7 +53,7 @@ func LoadKernelPDT(pAddr, vAddr, size uint32) {
 		logger.COM().LogUint(logger.Debug, "     To pAddr", uint64(e.PageAddress))
 		kernelPDT.Load(e)
 	}
-	pdtVAddr := uint32(uintptr(unsafe.Pointer(&kernelPDT)))
+	pdtVAddr := uint32(uintptr(unsafe.Pointer(kernelPDT)))
 	logger.COM().LogUint(logger.Debug, "kernelPDT", uint64(pdtVAddr))
 	// convert pdt address to physical address
 	pdtPAddr := pAddr + (pdtVAddr - vAddr)

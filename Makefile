@@ -16,9 +16,7 @@ DEPS = $(addsuffix deps.mk,$(GO_SOURCE_DIRS))
 
 GCCGO := gccgo
 GCCGOFLAGS = -fno-pic -fno-split-stack -fno-go-check-divide-zero
-
-LD := ld
-LDFLAGS = -T link.ld -m elf_i386 -lgo -L/usr/lib/gcc/i686-linux-gnu/8/
+GCCLDFLAGS = -static -T link.ld
 
 AS := nasm
 ASFLAGS = -f elf
@@ -31,7 +29,7 @@ QEMUFLAGS = -serial file:serial.out
 all: os.iso
 
 kernel.elf: $(OBJECTS)
-	$(LD) $(LDFLAGS) $(addprefix $(BUILD_DIRECTORY),$^) -o $@
+	$(GCCGO) $(GCCGOFLAGS) $(GCCLDFLAGS) -o $@ $(addprefix $(BUILD_DIRECTORY),$^)
 
 os.iso: kernel.elf
 	cp kernel.elf iso/boot/kernel.elf

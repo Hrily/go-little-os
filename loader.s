@@ -102,6 +102,10 @@ global main.main
 main.main:
 	ret
 
+global _end
+_end:
+	ret
+
 global __go_init_main
 __go_init_main:
 	ret

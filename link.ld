@@ -35,6 +35,27 @@ SECTIONS {
         *(.bss)              /* all bss sections from all files */
     }
 
+		.preinit_array ALIGN (0x1000) : AT(ADDR(.preinit_array)-0xC0000000)
+		{
+			PROVIDE_HIDDEN (__preinit_array_start = .);
+			KEEP (*(.preinit_array))
+			PROVIDE_HIDDEN (__preinit_array_end = .);
+		}
+		.init_array ALIGN (0x1000) : AT(ADDR(.init_array)-0xC0000000)
+		{
+			PROVIDE_HIDDEN (__init_array_start = .);
+			KEEP (*(SORT_BY_INIT_PRIORITY(.init_array.*) SORT_BY_INIT_PRIORITY(.ctors.*)))
+			KEEP (*(.init_array EXCLUDE_FILE (*crtbegin.o *crtbegin?.o *crtend.o *crtend?.o ) .ctors))
+			PROVIDE_HIDDEN (__init_array_end = .);
+		}
+		.fini_array ALIGN (0x1000) : AT(ADDR(.fini_array)-0xC0000000)
+		{
+			PROVIDE_HIDDEN (__fini_array_start = .);
+			KEEP (*(SORT_BY_INIT_PRIORITY(.fini_array.*) SORT_BY_INIT_PRIORITY(.dtors.*)))
+			KEEP (*(.fini_array EXCLUDE_FILE (*crtbegin.o *crtbegin?.o *crtend.o *crtend?.o ) .dtors))
+			PROVIDE_HIDDEN (__fini_array_end = .);
+		}
+
 		kernel_virtual_end  = .;
     kernel_physical_end = . - 0xC0000000;
 }

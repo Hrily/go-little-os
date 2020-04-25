@@ -1,5 +1,3 @@
-global kernel_modules_memory_gdt.LoadGDT
-
 gdtr DW 0 ; For limit storage
      DD 0 ; For base storage
 
@@ -7,6 +5,7 @@ gdtr DW 0 ; For limit storage
 ; Loads gdt
 ; stack: [esp + 4] address to gdt struct
 ;        [esp + 8] size to gdt struct
+global kernel_modules_memory_gdt.LoadGDT
 kernel_modules_memory_gdt.LoadGDT:
 	mov  eax, [esp + 4]
 	mov  [gdtr + 2], eax
@@ -23,6 +22,7 @@ reload_cs:
 	mov   ds, ax
 	mov   es, ax
 	mov   fs, ax
-	mov   gs, ax
 	mov   ss, ax
+	mov   ax, 0x18 ; 0x18 points at the tls storage selector
+	mov   gs, ax
 	ret

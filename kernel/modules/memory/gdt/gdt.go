@@ -6,6 +6,10 @@ import (
 	"kernel/lib/logger"
 )
 
+const (
+	nDescriptors = 6
+)
+
 // GDT represents the Global Descriptor Table
 type GDT []*Descriptor
 
@@ -22,20 +26,30 @@ func (g GDT) PopulateRecords(record []DescriptorRecord) {
 	}
 }
 
-var _gdt = [5]*Descriptor{
+var _gdt = [nDescriptors]*Descriptor{
 	nil, // first entry is nil
 	&KernelCodeSegment,
 	&KernelDataSegment,
+	&KernelTLSSegment,
 	nil, // extra
 	nil, // extra
 }
 
-var _gdtRecord = [5]DescriptorRecord{
+var _gdtRecord = [nDescriptors]DescriptorRecord{
 	0, 0, 0, 0, 0,
 }
 
 // LoadGDT loads gdt using lgdt instruction, defined in load.s
 func LoadGDT(gdtAddr uint32, gdtSize uint16)
+
+// AddToGDT adds given descriptor at index
+func AddToGDT(index int, d *Descriptor) {
+	if index > len(_gdt) {
+		logger.COM().Error("index greater than gdt size")
+		return
+	}
+	_gdtRecord[index] = d.ToDescriptorRecord()
+}
 
 // Init initializes gdt and loads it
 func Init() {
@@ -44,7 +58,7 @@ func Init() {
 	gdt.PopulateRecords(gdtRecord)
 
 	address := uint32(uintptr(unsafe.Pointer(&_gdtRecord)))
-	size := uint16(8 * 5)
+	size := uint16(8 * nDescriptors)
 
 	// gdtAddr := uintptr(unsafe.Pointer(&p))
 	LoadGDT(address, size)
