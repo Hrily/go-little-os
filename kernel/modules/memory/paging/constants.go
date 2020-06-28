@@ -12,4 +12,9 @@ const (
 	// WriteThrough is write hit policy where data is written to cache as well as
 	// in memory
 	WriteThrough WritePolicy = true
+
+	// _4kb = 4KB
+	_4kb uint32 = 4 * 1024
+	// _4mb = 4MB
+	_4mb uint32 = _4kb * 1024
 )

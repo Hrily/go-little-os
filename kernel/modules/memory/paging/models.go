@@ -26,6 +26,7 @@ type Entry struct {
 	IsPresent       bool
 }
 
+// ToRecord converts entry to a record which can be stored in table
 func (e *Entry) ToRecord() uint32 {
 	var entry uint32
 	// | 31 .. 12 | 11 .. 9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1   | 0 |
