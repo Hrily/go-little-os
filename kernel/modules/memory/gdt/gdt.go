@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	nDescriptors = 6
+	nDescriptors = 5
 )
 
 // GDT represents the Global Descriptor Table
@@ -30,7 +30,6 @@ var _gdt = [nDescriptors]*Descriptor{
 	nil, // first entry is nil
 	&KernelCodeSegment,
 	&KernelDataSegment,
-	&KernelTLSSegment,
 	nil, // extra
 	nil, // extra
 }

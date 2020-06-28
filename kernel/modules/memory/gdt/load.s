@@ -23,6 +23,5 @@ reload_cs:
 	mov   es, ax
 	mov   fs, ax
 	mov   ss, ax
-	mov   ax, 0x18 ; 0x18 points at the tls storage selector
 	mov   gs, ax
 	ret

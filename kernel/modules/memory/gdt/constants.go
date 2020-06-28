@@ -1,7 +1,5 @@
 package gdt
 
-import "unsafe"
-
 const (
 	// ByteGranularity represents granularity of 1B blocks
 	ByteGranularity Granularity = false
@@ -71,18 +69,6 @@ var KernelDataSegmentAccess = Access{
 var KernelDataSegment = Descriptor{
 	Base:   0,
 	Limit:  0xffffffff,
-	Flags:  &KernelSegmentFlags,
-	Access: &KernelDataSegmentAccess,
-}
-
-const tlsStorageSize = 1024
-
-var tlsStorage = [tlsStorageSize]byte{}
-
-// KernelTLSSegment is the kernel's thread level storage segment
-var KernelTLSSegment = Descriptor{
-	Base:   uint32(uintptr(unsafe.Pointer(&_gdtRecord))),
-	Limit:  uint32(uintptr(unsafe.Pointer(&_gdtRecord))) + tlsStorageSize,
 	Flags:  &KernelSegmentFlags,
 	Access: &KernelDataSegmentAccess,
 }

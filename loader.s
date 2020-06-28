@@ -110,6 +110,12 @@ global __go_init_main
 __go_init_main:
 	ret
 
+global kernel.Start:
+kernel.Start:
+	extern _dl_allocate_tls_init
+	call   _dl_allocate_tls_init
+	ret
+
 section .bss
 ; Kernel Stack
 align 4                                   ; align at 4 bytes

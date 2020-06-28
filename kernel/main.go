@@ -4,7 +4,10 @@ import (
 	"kernel/lib/logger"
 	"kernel/models"
 	"kernel/modules/init"
+	"unsafe"
 )
+
+func Start()
 
 type I interface {
 	F()
@@ -16,9 +19,16 @@ func (s *S) F() {
 	logger.COM().Info("F()")
 }
 
+func NewI() I {
+	return &S{}
+}
+
 func f() {
-	var i I = &S{}
-	i.F()
+	i := make([]uint32, 4*1024*1024)
+	address := uint64(uintptr(unsafe.Pointer(&i)))
+	logger.COM().LogUint(logger.Info, "&i", address)
+	si := i[4*1024*1024-1]
+	logger.COM().LogUint(logger.Info, "si", uint64(si))
 }
 
 // Main is the first function which is called
@@ -36,5 +46,6 @@ func Main(p models.KernelParams) {
 		logger.Info, "Kernel Physical End  ", uint64(p.KernelPEndAddr),
 	)
 	init.Init(p)
+	Start()
 	f()
 }

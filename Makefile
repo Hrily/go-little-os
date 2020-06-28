@@ -15,7 +15,7 @@ OBJECTS = $(GO_OBJECTS) $(AS_OBJECTS)
 DEPS = $(addsuffix deps.mk,$(GO_SOURCE_DIRS))
 
 GCCGO := gccgo
-GCCGOFLAGS = -fno-pic -fno-split-stack -fno-go-check-divide-zero
+GCCGOFLAGS = -m32 -fno-pic -fno-split-stack -fno-go-check-divide-zero
 GCCLDFLAGS = -static -T link.ld
 
 AS := nasm
