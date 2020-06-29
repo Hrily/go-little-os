@@ -1,2 +1,4 @@
 kernel/modules/memory/paging.o : kernel/lib/logger.o \
-	kernel/utils/integer.o
+	kernel/modules/memory/paging/constants.o \
+	kernel/modules/memory/paging/models.o \
+	kernel/utils/pointer.o

@@ -29,13 +29,15 @@ boot_page_directory:
 	; enabled because it can't fetch the next instruction! It's ok to unmap this page later.
 	dd 0x00000083 + 0*0x400000
 	dd 0x00000083 + 1*0x400000
-	dd 0x00000083 + 2*0x400000   ; will contain the actual kernel pdt when loaded
-	times (KERNEL_PAGE_NUMBER - 3) dd 0                 ; Pages before kernel space.
+	dd 0x00000083 + 2*0x400000
+	dd 0x00000083 + 3*0x400000   ; will contain the actual kernel pdt when loaded
+	times (KERNEL_PAGE_NUMBER - 4) dd 0                 ; Pages before kernel space.
 	; This page directory entry defines a 4MB page containing the kernel.
 	dd 0x00000083 + 0*0x400000
 	dd 0x00000083 + 1*0x400000
 	dd 0x00000083 + 2*0x400000
-	times (1024 - KERNEL_PAGE_NUMBER - 6) dd 0  ; Pages after the kernel image.
+	dd 0x00000083 + 3*0x400000
+	times (1024 - KERNEL_PAGE_NUMBER - 8) dd 0  ; Pages after the kernel image.
 
 section .text                  ; start of the text (code) section
 
