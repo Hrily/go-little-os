@@ -1,7 +1,7 @@
 #!/bin/sh
 
 get_dependencies () {
-	cat $1/*.go | \
+	cat $(ls $1/*.go | grep -v '_test.go') | \
 		tr '\n' ' ' | \
 		tr '\t' ' ' | \
 		tr -s ' ' ' ' | \

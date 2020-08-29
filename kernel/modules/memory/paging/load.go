@@ -2,7 +2,6 @@ package paging
 
 import (
 	"kernel/lib/logger"
-	"kernel/modules/memory/paging/constants"
 	"kernel/modules/memory/paging/models"
 	"kernel/utils/pointer"
 )
@@ -44,7 +43,7 @@ func LoadKernelPDT(pAddr, vAddr, size uint32) {
 		e := &models.Frame{
 			VirtualAddress: vAddr + i*_4mb,
 			PageAddress:    pAddr + i*_4mb,
-			Size:           constants.Size4MB,
+			Size:           models.Size4MB,
 			IsReadWrite:    true,
 			IsPresent:      true,
 		}
@@ -60,13 +59,13 @@ func LoadKernelPDT(pAddr, vAddr, size uint32) {
 	ptForKernelPDT.Load(&models.Frame{
 		VirtualAddress: kernelPDTAddr,
 		PageAddress:    getPAddr(kernelPDTAddr),
-		Size:           constants.Size4KB,
+		Size:           models.Size4KB,
 		IsPresent:      true,
 	})
 	kernelPDT.Load(&models.Frame{
 		VirtualAddress: ptForKernelPDTAddr,
 		PageAddress:    getPAddr(ptForKernelPDTAddr),
-		Size:           constants.Size4KB,
+		Size:           models.Size4KB,
 		IsPresent:      true,
 	})
 

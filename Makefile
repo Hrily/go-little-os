@@ -3,7 +3,7 @@ BUILD_DIRECTORY  = build/
 
 uniq=$(shell echo $(1) | tr " " "\n" | cat -n | sort -uk2 | sort -nk1| cut -f2- | tr "\n" " ")
 
-GO_SOURCES     = $(shell find $(SOURCE_DIRECTORY) -name '*.go')
+GO_SOURCES     = $(shell find $(SOURCE_DIRECTORY) -name '*.go' ! -name '*_test.go')
 GO_SOURCE_DIRS = $(call uniq,$(dir $(GO_SOURCES)))
 GO_OBJECTS     = $(GO_SOURCE_DIRS:/=.o)
 
@@ -56,7 +56,7 @@ $(AS_OBJECTS): %.s.o : $$(call REQ_AS_SOURCES,%.s.o)
 REQ_GO_SOURCES = $(shell ls $(1)/*.go)
 $(GO_OBJECTS): %.o : $$(call REQ_GO_SOURCES,%)
 	$(eval CURRENT_DIR := $(subst .o,/,$@))
-	$(eval GO_SOURCES  := $(shell ls $(CURRENT_DIR)*.go))
+	$(eval GO_SOURCES  := $(shell ls $(CURRENT_DIR)*.go | grep -v '_test.go'))
 	mkdir -p $(BUILD_DIRECTORY)$(CURRENT_DIR)
 	$(GCCGO) $(GCCGOFLAGS) -fgo-pkgpath=$(CURRENT_DIR:/=) -c $(GO_SOURCES) \
 		-o $(BUILD_DIRECTORY)$@ -I$(BUILD_DIRECTORY) -L$(BUILD_DIRECTORY)

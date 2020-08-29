@@ -7,8 +7,35 @@ import (
 // PageSize determines the size of page 4KB or 4MB
 type PageSize bool
 
+const (
+	// Size4KB represents 4KBpage size
+	Size4KB PageSize = false
+	// Size4MB represents 4KBpage size
+	Size4MB PageSize = true
+)
+
+// ToBytes converts page size to number of bytes
+func (p PageSize) ToBytes() uint32 {
+	switch p {
+	case Size4KB:
+		return 4 * 1024
+	case Size4MB:
+		return 4 * 1024 * 1024
+	}
+	return 0
+}
+
 // WritePolicy determines the policy used incase of write hit (cache)
 type WritePolicy bool
+
+const (
+	// WriteBack is write hit policy where data is written to cache and to memory
+	// later
+	WriteBack WritePolicy = false
+	// WriteThrough is write hit policy where data is written to cache as well as
+	// in memory
+	WriteThrough WritePolicy = true
+)
 
 // Frame is an entry in Page Directory or Table
 // May represent a page table entry or directly page entry
