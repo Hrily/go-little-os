@@ -2,6 +2,7 @@ package paging
 
 import (
 	"kernel/lib/logger"
+	"kernel/modules/memory/paging/allocator/buddy"
 	"kernel/modules/memory/paging/models"
 	"kernel/utils/pointer"
 )
@@ -26,6 +27,17 @@ func LoadKernelPDT(pAddr, vAddr, size uint32) {
 		size += pAddr - alignedPAddr
 		pAddr = alignedPAddr
 	}
+
+	// put buddyAllocator at end of kernel
+	buddyAllocatorVAddr := vAddr + size
+
+	// align buddyAllocatorVAddr to 4b
+	if (buddyAllocatorVAddr % 4) > 0 {
+		size += 4 - (buddyAllocatorVAddr % 4)
+		buddyAllocatorVAddr += 4 - (buddyAllocatorVAddr % 4)
+	}
+	// increement size to accomodate buddyAllocator
+	size += buddy.AllocatorSize()
 
 	// We'll load kernel in 4MB pages
 	nPages := uint32(size / _4mb)
@@ -71,4 +83,8 @@ func LoadKernelPDT(pAddr, vAddr, size uint32) {
 
 	LoadPDT(getPAddr(kernelPDTAddr))
 	logger.COM().Info("Kernel PDT loaded succesfully")
+
+	// initialize buddyAllocator
+	buddy.InitAllocator(buddyAllocatorVAddr)
+	logger.COM().Info("buddyAllocator initialized succesfully")
 }
