@@ -3,7 +3,8 @@ package buddy
 import (
 	"unsafe"
 
-	"kernel/lib/logger"
+	"kernel/modules/memory/paging/allocator/pageframe"
+	"kernel/modules/memory/paging/models"
 	"kernel/utils/pointer"
 )
 
@@ -16,15 +17,39 @@ const (
 	_nBigPages = 1024
 )
 
+// freeBuddiesList stores free pages of a specific order. It uses one bit per
+// buddy pair of pages.
+// If a bit for a buddy pair is:
+//   - 1 : one of the pages in buddy is free
+//   - 0 : both pages are either free or allocated
+type freeBuddiesList struct {
+	freeMap  bitmap
+	freeList list
+}
+
+// buddyAllocator uses buddy list to allocate page frames.
+// It implements Allocator interface.
+// Resources will explain a lot better than I ever will be able to, so just
+// links, no comments.
+//   - OS Dev Wiki: https://wiki.osdev.org/Page_Frame_Allocation#Buddy_Allocation_System
+//   - Kernel Docs: https://www.kernel.org/doc/gorman/html/understand/understand009.html
+type buddyAllocator struct {
+	// buddies is collection of free buddies list
+	buddies []freeBuddiesList
+}
+
+// _buddyAllocator is the instance of buddyAllocator
+var _buddyAllocator buddyAllocator
+
 // AllocatorSize returns total size which will be used by buddyAllocator.
 // This is useful while kernel page allocation
 // To know how this is computed, check Init function
 func AllocatorSize() (size uint32) {
-	// size of bigPagesBitmap
-	size += nMaps(_nBigPages) * 4
-
 	// size of freeBuddiesList
 	size += _maxOrder * uint32(unsafe.Sizeof(freeBuddiesList{}))
+
+	// size of bigPagesBitmap
+	size += nMaps(_nBigPages) * 4
 
 	// size of individual freeBuddiesList
 	for i := 0; i < _maxOrder; i++ {
@@ -34,41 +59,25 @@ func AllocatorSize() (size uint32) {
 		size += nMaps(nBuddies) * 4
 	}
 
+	// size of node pool
+	size += nodePoolSize()
+
 	return
 }
 
-// freeBuddiesList stores free pages of a specific order. It uses one bit per
-// buddy pair of pages.
-// If a bit for a buddy pair is:
-//   - 1 : first page in buddy pair is free
-//   - 0 : both pages are either free or allocated
-type freeBuddiesList struct {
-	bitmap
-}
-
-// buddyAllocator uses buddy list to allocate page frames.
-// It implements Allocator interface.
-// Resources:
-//   - OS Dev Wiki: https://wiki.osdev.org/Page_Frame_Allocation#Buddy_Allocation_System
-//   - Kernel Docs: https://www.kernel.org/doc/gorman/html/understand/understand009.html
-type buddyAllocator struct {
-	// bigPagesBitmap is free bitmap for 4mb pages
-	bigPagesBitmap bitmap
-	// buddies is collection of free buddies list
-	buddies []freeBuddiesList
-}
-
-// _buddyAllocator is the instance of buddyAllocator
-var _buddyAllocator buddyAllocator
-
 // InitAllocator the buddyAllocator at given address
 func InitAllocator(addr uint32) {
-	/**
-	 * Warning: Lot of unsafe pointer usage and manipulation ahead.
-	 * This function basically initializes memory at given address, so that
-	 * _buddyAllocator, and it's members, point to this address.
-	 */
-	logger.COM().LogUint(logger.Info, "_buddyAllocator struct at", uint64(uintptr(unsafe.Pointer(&_buddyAllocator))))
+	// Warning: Lot of unsafe pointer usage and manipulation ahead.
+	// This function basically initializes memory at given address, so that
+	// _buddyAllocator, and it's members, point to this address.
+
+	// create freeBuddiesList
+	var _freeBuddiesList *[_maxOrder + 1]freeBuddiesList
+	_freeBuddiesList = (*[_maxOrder + 1]freeBuddiesList)(pointer.Get(addr))
+	addr += (_maxOrder + 1) * uint32(unsafe.Sizeof(freeBuddiesList{}))
+
+	// set freeBuddiesList in buddyAllocator
+	_buddyAllocator.buddies = (*_freeBuddiesList)[:_maxOrder+1]
 
 	// create bigPagesBitmap
 	// _nBigPages size for array is way more than needed. this is done since
@@ -78,20 +87,12 @@ func InitAllocator(addr uint32) {
 	addr += nMaps(_nBigPages) * 4
 
 	// set bigPagesBitmap in buddyAllocator
-	_buddyAllocator.bigPagesBitmap.maps = (*_bigPagesBitmap)[:nMaps(_nBigPages)]
+	_buddyAllocator.buddies[_maxOrder].freeMap.maps = (*_bigPagesBitmap)[:nMaps(_nBigPages)]
 
-	// zero out bigPagesBitmap
+	// mark all big pages as free
 	for i := uint32(0); i < nMaps(_nBigPages); i++ {
-		_buddyAllocator.bigPagesBitmap.maps[i] = 0
+		_buddyAllocator.buddies[_maxOrder].freeMap.maps[i] = _allSet
 	}
-
-	// create freeBuddiesList
-	var _freeBuddiesList *[_maxOrder]freeBuddiesList
-	_freeBuddiesList = (*[_maxOrder]freeBuddiesList)(pointer.Get(addr))
-	addr += _maxOrder * uint32(unsafe.Sizeof(freeBuddiesList{}))
-
-	// set freeBuddiesList in buddyAllocator
-	_buddyAllocator.buddies = (*_freeBuddiesList)[:_maxOrder]
 
 	// create the individual freeBuddiesList
 	for i := 0; i < _maxOrder; i++ {
@@ -108,27 +109,199 @@ func InitAllocator(addr uint32) {
 		addr += nMaps * 4
 
 		// set the freeBuddiesList
-		_buddyAllocator.buddies[i].maps = (*maps)[:nMaps]
+		_buddyAllocator.buddies[i].freeMap.maps = (*maps)[:nMaps]
 
 		// zero out the freeBuddiesList
 		for j := uint32(0); j < nMaps; j++ {
-			_buddyAllocator.buddies[i].maps[j] = 0
+			_buddyAllocator.buddies[i].freeMap.maps[j] = 0
 		}
 	}
+
+	initNodePool(addr)
+}
+
+// Allocator returns buddy allocator
+func Allocator() pageframe.Allocator {
+	return &_buddyAllocator
+}
+
+// getAddress returns address given index and order. In case of buddy pair,
+// first will determine if returned address is of first page or second.
+func (ba *buddyAllocator) getAddress(
+	index, order uint32, first bool,
+) (addr uint32) {
+	// If it is bigPage
+	if order >= _maxOrder {
+		return index * models.Size4MB.ToBytes()
+	}
+	// not a bigPage, is part of buddy
+	pageIndex := 2 * index
+	if !first {
+		pageIndex++
+	}
+	return pageIndex * (1 << order) * models.Size4KB.ToBytes()
+}
+
+// getIndex returns index given address and order. This is inverse function of
+// getAddress. first will be true if this is first page in buddy of that order
+func (ba *buddyAllocator) getIndex(
+	addr, order uint32,
+) (index uint32, first bool) {
+	if order >= _maxOrder {
+		return addr / models.Size4MB.ToBytes(), false
+	}
+	pageIndex := addr / models.Size4KB.ToBytes() / (1 << order)
+	first = (pageIndex % 2) == 0
+	index = pageIndex / 2
+	return
+}
+
+// getBuddyAddress returns address of buddy of given page
+func (ba *buddyAllocator) getBuddyAddress(
+	index, order uint32, first bool,
+) (addr uint32) {
+	return ba.getAddress(index, order, !first)
 }
 
 // Allocate 2^order number of pages and return physical address of the first
 // page frame. Will return ok as false if it failed to allocate.
 func (ba *buddyAllocator) Allocate(order uint32) (addr uint32, ok bool) {
-	return
+	if order >= _maxOrder {
+		// we need order / _maxOrder pages
+		n := order / _maxOrder
+		index, ok := ba.buddies[_maxOrder].freeMap.FirstContiguousSet(n)
+		if !ok {
+			return 0, false
+		}
+		// Mark n pages from index as used
+		for i := uint32(0); i < n; i++ {
+			ba.buddies[_maxOrder].freeMap.Reset(index + i)
+		}
+		return ba.getAddress(index, order, false), true
+	}
+
+	// Check if freeBuddiesList of that order has a free page
+	if !ba.buddies[order].freeList.IsEmpty() {
+		addr = ba.buddies[order].freeList.Head().Value()
+		// remove this addr from the list
+		ba.buddies[order].freeList.Delete(addr)
+		// map page as used
+		index, _ := ba.getIndex(addr, order)
+		ba.buddies[order].freeMap.Toggle(index)
+		return addr, true
+	}
+
+	// The hard part, check higher order for free page
+	higherOrder := order + 1
+	higherOrderIndex := uint32(0)
+	for higherOrder < _maxOrder {
+		// Check if higherOrder freeBuddiesList has free page
+		if !ba.buddies[higherOrder].freeList.IsEmpty() {
+			higherOrderAddr := ba.buddies[higherOrder].freeList.Head().Value()
+			// remove this addr from the list
+			ba.buddies[higherOrder].freeList.Delete(higherOrderAddr)
+			// map page as used
+			higherOrderIndex, _ = ba.getIndex(higherOrderAddr, higherOrder)
+			break
+		}
+		higherOrder++
+	}
+
+	if higherOrder == _maxOrder {
+		higherOrderIndex, ok = ba.buddies[_maxOrder].freeMap.FirstSet()
+		if !ok {
+			return 0, false
+		}
+		// mark higherOrderIndex as used
+		ba.buddies[_maxOrder].freeMap.Reset(higherOrderIndex)
+	}
+
+	// till we reach desired order
+	for higherOrder > order {
+		// go to previous order
+		higherOrder--
+		// previous order index is x2, unless we are on _maxOrder - 1
+		if higherOrder < _maxOrder-1 {
+			higherOrderIndex <<= 1
+		}
+
+		// Add first buddy page to free list
+		if ok := ba.buddies[higherOrder].freeList.Append(
+			ba.getAddress(higherOrderIndex, higherOrder, true),
+		); !ok {
+			// we were not able to append the page to free list
+			// this should not happen. TODO: handle gracefully
+			return 0, false
+		}
+
+		// Mark buddy
+		ba.buddies[higherOrder].freeMap.Toggle(higherOrderIndex)
+	}
+
+	// now higherOrder == order, return addr of second page in buddy
+	return ba.getAddress(higherOrderIndex, higherOrder, false), true
 }
 
 // Release marks 2^order number of pages starting from addr as free and unused.
 func (ba *buddyAllocator) Release(addr, order uint32) {
+	index, first := ba.getIndex(addr, order)
+
+	if order >= _maxOrder {
+		// we need to free order / _maxOrder pages
+		n := order / _maxOrder
+		// Mark n pages from index as free
+		for i := uint32(0); i < n; i++ {
+			ba.buddies[_maxOrder].freeMap.Set(index + i)
+		}
+		return
+	}
+
+	// go up until we get a buddy with one page allocated
+	for order <= _maxOrder {
+		// check if other buddy is still allocated
+		if !ba.buddies[order].freeMap.IsSet(index) {
+			// mark buddy as free
+			ba.buddies[order].freeMap.Toggle(index)
+			// add this page to free list
+			ba.buddies[order].freeList.Append(addr)
+			// no need to go further
+			break
+		}
+		// buddy is also free, combine buddies
+		buddyAddress := ba.getBuddyAddress(index, order, first)
+		ba.buddies[order].freeList.Delete(buddyAddress)
+		// now, mark both pages are free
+		ba.buddies[order].freeMap.Toggle(index)
+		// go to next order
+		order++
+		if buddyAddress < addr {
+			addr = buddyAddress
+		}
+		index, first = ba.getIndex(addr, order)
+	}
 	return
 }
 
 // Mark 2^order number of pages starting from addr as used.
 func (ba *buddyAllocator) Mark(addr, order uint32) {
+	index, first := ba.getIndex(addr, order)
+
+	if order >= _maxOrder {
+		// we need to mark order / _maxOrder pages
+		n := order / _maxOrder
+		// Mark n pages from index as allocated
+		for i := uint32(0); i < n; i++ {
+			ba.buddies[_maxOrder].freeMap.Reset(index + i)
+		}
+		return
+	}
+
+	// Mark index as allocated
+	ba.buddies[order].freeMap.Toggle(index)
+	// If buddy is free add it to free list
+	if ba.buddies[order].freeMap.IsSet(index) {
+		buddyAddress := ba.getBuddyAddress(index, order, first)
+		ba.buddies[order].freeList.Append(buddyAddress)
+	}
 	return
 }
