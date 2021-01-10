@@ -19,15 +19,15 @@ var (
 
 // setup common
 func setup(ba *buddyAllocator) {
-	ba.buddies = make([]freeBuddiesList, _maxOrder+1)
+	ba.buddies = make([]freeBuddiesList, MaxOrder+1)
 
-	ba.buddies[_maxOrder].freeMap.maps = make([]uint32, nMaps(_nBigPages))
+	ba.buddies[MaxOrder].freeMap.maps = make([]uint32, nMaps(_nBigPages))
 	for i := uint32(0); i < nMaps(_nBigPages); i++ {
-		ba.buddies[_maxOrder].freeMap.maps[i] = _allSet
+		ba.buddies[MaxOrder].freeMap.maps[i] = _allSet
 	}
 
-	for i := 0; i < _maxOrder; i++ {
-		var nBuddies uint32 = _nBigPages * (1 << uint32(_maxOrder-i-1))
+	for i := 0; i < MaxOrder; i++ {
+		var nBuddies uint32 = _nBigPages * (1 << uint32(MaxOrder-i-1))
 		ba.buddies[i].freeMap.maps = make([]uint32, nMaps(nBuddies))
 		for j := uint32(0); j < nMaps(nBuddies); j++ {
 			ba.buddies[i].freeMap.maps[j] = 0
@@ -51,27 +51,27 @@ func Test_buddyAllocator_Allocate(t *testing.T) {
 	}{
 		{
 			name:  "Multiple big pages, available",
-			order: 4 * _maxOrder,
+			order: 4 * MaxOrder,
 			setup: func(ba *buddyAllocator) {
 				setup(ba)
 				// keep 4 pages free at index 12
 				// 0b 1111 0111 0110 0101
-				ba.buddies[_maxOrder].freeMap.maps[0] = 0xf765
+				ba.buddies[MaxOrder].freeMap.maps[0] = 0xf765
 			},
 			assert: func(t *testing.T, ba *buddyAllocator, addr uint32, ok bool) {
 				assert.Equal(t, true, ok)
 				assert.Equal(t, 12*models.Size4MB.ToBytes(), addr)
-				assert.Equal(t, uint32(0x0765), ba.buddies[_maxOrder].freeMap.maps[0])
+				assert.Equal(t, uint32(0x0765), ba.buddies[MaxOrder].freeMap.maps[0])
 			},
 		},
 		{
 			name:  "Multiple big pages, not available",
-			order: 4 * _maxOrder,
+			order: 4 * MaxOrder,
 			setup: func(ba *buddyAllocator) {
 				setup(ba)
 				// Mark all as used
 				for i := uint32(0); i < nMaps(_nBigPages); i++ {
-					ba.buddies[_maxOrder].freeMap.maps[i] = 0
+					ba.buddies[MaxOrder].freeMap.maps[i] = 0
 				}
 			},
 			assert: func(t *testing.T, ba *buddyAllocator, addr uint32, ok bool) {
@@ -81,26 +81,26 @@ func Test_buddyAllocator_Allocate(t *testing.T) {
 		},
 		{
 			name:  "Single big page, available",
-			order: _maxOrder,
+			order: MaxOrder,
 			setup: func(ba *buddyAllocator) {
 				setup(ba)
 				// Mark 12th page as free
-				ba.buddies[_maxOrder].freeMap.maps[0] = 0x1000
+				ba.buddies[MaxOrder].freeMap.maps[0] = 0x1000
 			},
 			assert: func(t *testing.T, ba *buddyAllocator, addr uint32, ok bool) {
 				assert.Equal(t, true, ok)
 				assert.Equal(t, 12*models.Size4MB.ToBytes(), addr)
-				assert.Equal(t, uint32(0), ba.buddies[_maxOrder].freeMap.maps[0])
+				assert.Equal(t, uint32(0), ba.buddies[MaxOrder].freeMap.maps[0])
 			},
 		},
 		{
 			name:  "Single big page, not available",
-			order: _maxOrder,
+			order: MaxOrder,
 			setup: func(ba *buddyAllocator) {
 				setup(ba)
 				// Mark all as used
 				for i := uint32(0); i < nMaps(_nBigPages); i++ {
-					ba.buddies[_maxOrder].freeMap.maps[i] = 0
+					ba.buddies[MaxOrder].freeMap.maps[i] = 0
 				}
 			},
 			assert: func(t *testing.T, ba *buddyAllocator, addr uint32, ok bool) {
@@ -133,7 +133,7 @@ func Test_buddyAllocator_Allocate(t *testing.T) {
 				setup(ba)
 				// Mark all pages as used
 				for i := uint32(0); i < nMaps(_nBigPages); i++ {
-					ba.buddies[_maxOrder].freeMap.maps[i] = 0
+					ba.buddies[MaxOrder].freeMap.maps[i] = 0
 				}
 			},
 			assert: func(t *testing.T, ba *buddyAllocator, addr uint32, ok bool) {
@@ -147,7 +147,7 @@ func Test_buddyAllocator_Allocate(t *testing.T) {
 			setup: func(ba *buddyAllocator) {
 				setup(ba)
 				// keep 1 page free at index 12
-				ba.buddies[_maxOrder].freeMap.maps[0] = 0x1000
+				ba.buddies[MaxOrder].freeMap.maps[0] = 0x1000
 			},
 			assert: func(t *testing.T, ba *buddyAllocator, addr uint32, ok bool) {
 				assert.Equal(t, true, ok)
@@ -157,9 +157,9 @@ func Test_buddyAllocator_Allocate(t *testing.T) {
 					((12 * models.Size4MB.ToBytes()) + models.Size4KB.ToBytes()),
 					addr,
 				)
-				assert.Equal(t, uint32(0), ba.buddies[_maxOrder].freeMap.maps[0])
-				for i := _maxOrder - 1; i >= 0; i-- {
-					index := uint32(12 * (1 << (_maxOrder - i - 1)))
+				assert.Equal(t, uint32(0), ba.buddies[MaxOrder].freeMap.maps[0])
+				for i := MaxOrder - 1; i >= 0; i-- {
+					index := uint32(12 * (1 << (MaxOrder - i - 1)))
 					assert.Equal(
 						t, true,
 						ba.buddies[i].freeMap.IsSet(index),
@@ -184,8 +184,8 @@ func Test_buddyAllocator_Allocate(t *testing.T) {
 			setup: func(ba *buddyAllocator) {
 				setup(ba)
 				// keep 1 page free at index 6, i.e 12th big page
-				ba.buddies[_maxOrder-1].freeMap.maps[0] = 0x20
-				ba.buddies[_maxOrder-1].freeList.Append(
+				ba.buddies[MaxOrder-1].freeMap.maps[0] = 0x20
+				ba.buddies[MaxOrder-1].freeList.Append(
 					12 * models.Size4MB.ToBytes(),
 				)
 			},
@@ -197,9 +197,9 @@ func Test_buddyAllocator_Allocate(t *testing.T) {
 					((12 * models.Size4MB.ToBytes()) + models.Size4KB.ToBytes()),
 					addr,
 				)
-				assert.Equal(t, false, ba.buddies[_maxOrder-1].freeMap.IsSet(6))
-				for i := _maxOrder - 2; i >= 0; i-- {
-					index := uint32(12 * (1 << (_maxOrder - i - 1)))
+				assert.Equal(t, false, ba.buddies[MaxOrder-1].freeMap.IsSet(6))
+				for i := MaxOrder - 2; i >= 0; i-- {
+					index := uint32(12 * (1 << (MaxOrder - i - 1)))
 					assert.Equal(
 						t, true,
 						ba.buddies[i].freeMap.IsSet(index),
@@ -224,7 +224,7 @@ func Test_buddyAllocator_Allocate(t *testing.T) {
 			setup: func(ba *buddyAllocator) {
 				setup(ba)
 				// keep 1 page free at index 12
-				ba.buddies[_maxOrder].freeMap.maps[0] = 0x1000
+				ba.buddies[MaxOrder].freeMap.maps[0] = 0x1000
 				// make node pool full
 				for i := uint32(0); i < nMaps(_testNodesSize); i++ {
 					_nodePool.freeMap.maps[i] = 0
@@ -257,29 +257,29 @@ func Test_buddyAllocator_Release(t *testing.T) {
 		{
 			name:  "Release multiple big page",
 			addr:  12 * models.Size4MB.ToBytes(),
-			order: 4 * _maxOrder,
+			order: 4 * MaxOrder,
 			setup: func(ba *buddyAllocator) {
 				setup(ba)
 				// mark 4 pages at index 12 as used
 				// 0b 0000 0111 0110 0101
-				ba.buddies[_maxOrder].freeMap.maps[0] = 0x0765
+				ba.buddies[MaxOrder].freeMap.maps[0] = 0x0765
 			},
 			assert: func(t *testing.T, ba *buddyAllocator) {
-				assert.Equal(t, uint32(0xf765), ba.buddies[_maxOrder].freeMap.maps[0])
+				assert.Equal(t, uint32(0xf765), ba.buddies[MaxOrder].freeMap.maps[0])
 			},
 		},
 		{
 			name:  "Release single big page",
 			addr:  12 * models.Size4MB.ToBytes(),
-			order: 1 * _maxOrder,
+			order: 1 * MaxOrder,
 			setup: func(ba *buddyAllocator) {
 				setup(ba)
 				// mark 4 pages at index 12 as used
 				// 0b 0000 0111 0110 0101
-				ba.buddies[_maxOrder].freeMap.maps[0] = 0x0765
+				ba.buddies[MaxOrder].freeMap.maps[0] = 0x0765
 			},
 			assert: func(t *testing.T, ba *buddyAllocator) {
-				assert.Equal(t, uint32(0x1765), ba.buddies[_maxOrder].freeMap.maps[0])
+				assert.Equal(t, uint32(0x1765), ba.buddies[MaxOrder].freeMap.maps[0])
 			},
 		},
 		{
@@ -335,21 +335,21 @@ func Test_buddyAllocator_Release(t *testing.T) {
 			setup: func(ba *buddyAllocator) {
 				setup(ba)
 				index := uint32(1024)
-				for order := 0; order < _maxOrder; order++ {
+				for order := 0; order < MaxOrder; order++ {
 					ba.buddies[order].freeMap.Set(index >> order)
 				}
 				// mark big page as used
-				ba.buddies[_maxOrder].freeMap.maps[0] = 0
+				ba.buddies[MaxOrder].freeMap.maps[0] = 0
 			},
 			assert: func(t *testing.T, ba *buddyAllocator) {
 				index := uint32(1024)
-				for order := 0; order < _maxOrder; order++ {
+				for order := 0; order < MaxOrder; order++ {
 					assert.False(
 						t, ba.buddies[order].freeMap.IsSet(index>>order),
 						"order", order, "index >> order", index>>order,
 					)
 				}
-				assert.Equal(t, uint32(0x4), ba.buddies[_maxOrder].freeMap.maps[0])
+				assert.Equal(t, uint32(0x4), ba.buddies[MaxOrder].freeMap.maps[0])
 			},
 		},
 	}
@@ -374,27 +374,27 @@ func Test_buddyAllocator_Mark(t *testing.T) {
 		{
 			name:  "Mark multiple big page",
 			addr:  12 * models.Size4MB.ToBytes(),
-			order: 4 * _maxOrder,
+			order: 4 * MaxOrder,
 			setup: func(ba *buddyAllocator) {
 				setup(ba)
 				// mark 4 pages at index 12 as used
 				// 0b 1111 0111 0110 0101
-				ba.buddies[_maxOrder].freeMap.maps[0] = 0xf765
+				ba.buddies[MaxOrder].freeMap.maps[0] = 0xf765
 			},
 			assert: func(t *testing.T, ba *buddyAllocator) {
-				assert.Equal(t, uint32(0x0765), ba.buddies[_maxOrder].freeMap.maps[0])
+				assert.Equal(t, uint32(0x0765), ba.buddies[MaxOrder].freeMap.maps[0])
 			},
 		},
 		{
 			name:  "Release single big page",
 			addr:  12 * models.Size4MB.ToBytes(),
-			order: 1 * _maxOrder,
+			order: 1 * MaxOrder,
 			setup: func(ba *buddyAllocator) {
 				setup(ba)
-				ba.buddies[_maxOrder].freeMap.maps[0] = 0x1765
+				ba.buddies[MaxOrder].freeMap.maps[0] = 0x1765
 			},
 			assert: func(t *testing.T, ba *buddyAllocator) {
-				assert.Equal(t, uint32(0x0765), ba.buddies[_maxOrder].freeMap.maps[0])
+				assert.Equal(t, uint32(0x0765), ba.buddies[MaxOrder].freeMap.maps[0])
 			},
 		},
 		{

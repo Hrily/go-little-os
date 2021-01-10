@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	// _maxOrder is the maximum order of 2 pages we can allocate.
+	// MaxOrder is the maximum order of 2 pages we can allocate.
 	// for now, we assume this to be 4MB = 1024 * 4KB pages.
-	_maxOrder = 10
+	MaxOrder = 10
 
 	// _nBigPages is total number of 4mb pages. We assume initial memory of 4GB.
 	_nBigPages = 1024
@@ -46,16 +46,16 @@ var _buddyAllocator buddyAllocator
 // To know how this is computed, check Init function
 func AllocatorSize() (size uint32) {
 	// size of freeBuddiesList
-	size += _maxOrder * uint32(unsafe.Sizeof(freeBuddiesList{}))
+	size += MaxOrder * uint32(unsafe.Sizeof(freeBuddiesList{}))
 
 	// size of bigPagesBitmap
 	size += nMaps(_nBigPages) * 4
 
 	// size of individual freeBuddiesList
-	for i := 0; i < _maxOrder; i++ {
+	for i := 0; i < MaxOrder; i++ {
 		// maxOrder - 1 pages of order i, further divide by 2 since we use 1 bit
 		// for buddy pair.
-		var nBuddies uint32 = _nBigPages * (1 << uint32(_maxOrder-i-1))
+		var nBuddies uint32 = _nBigPages * (1 << uint32(MaxOrder-i-1))
 		size += nMaps(nBuddies) * 4
 	}
 
@@ -72,12 +72,12 @@ func InitAllocator(addr uint32) {
 	// _buddyAllocator, and it's members, point to this address.
 
 	// create freeBuddiesList
-	var _freeBuddiesList *[_maxOrder + 1]freeBuddiesList
-	_freeBuddiesList = (*[_maxOrder + 1]freeBuddiesList)(pointer.Get(addr))
-	addr += (_maxOrder + 1) * uint32(unsafe.Sizeof(freeBuddiesList{}))
+	var _freeBuddiesList *[MaxOrder + 1]freeBuddiesList
+	_freeBuddiesList = (*[MaxOrder + 1]freeBuddiesList)(pointer.Get(addr))
+	addr += (MaxOrder + 1) * uint32(unsafe.Sizeof(freeBuddiesList{}))
 
 	// set freeBuddiesList in buddyAllocator
-	_buddyAllocator.buddies = (*_freeBuddiesList)[:_maxOrder+1]
+	_buddyAllocator.buddies = (*_freeBuddiesList)[:MaxOrder+1]
 
 	// create bigPagesBitmap
 	// _nBigPages size for array is way more than needed. this is done since
@@ -87,18 +87,18 @@ func InitAllocator(addr uint32) {
 	addr += nMaps(_nBigPages) * 4
 
 	// set bigPagesBitmap in buddyAllocator
-	_buddyAllocator.buddies[_maxOrder].freeMap.maps = (*_bigPagesBitmap)[:nMaps(_nBigPages)]
+	_buddyAllocator.buddies[MaxOrder].freeMap.maps = (*_bigPagesBitmap)[:nMaps(_nBigPages)]
 
 	// mark all big pages as free
 	for i := uint32(0); i < nMaps(_nBigPages); i++ {
-		_buddyAllocator.buddies[_maxOrder].freeMap.maps[i] = _allSet
+		_buddyAllocator.buddies[MaxOrder].freeMap.maps[i] = _allSet
 	}
 
 	// create the individual freeBuddiesList
-	for i := 0; i < _maxOrder; i++ {
+	for i := 0; i < MaxOrder; i++ {
 		// maxOrder - 1 pages of order i, further divide by 2 since we use 1 bit
 		// for buddy pair.
-		var nBuddies uint32 = _nBigPages * (1 << uint32(_maxOrder-i-1))
+		var nBuddies uint32 = _nBigPages * (1 << uint32(MaxOrder-i-1))
 		nMaps := nMaps(nBuddies)
 
 		// set address for this freeBuddiesList
@@ -131,7 +131,7 @@ func (ba *buddyAllocator) getAddress(
 	index, order uint32, first bool,
 ) (addr uint32) {
 	// If it is bigPage
-	if order >= _maxOrder {
+	if order >= MaxOrder {
 		return index * models.Size4MB.ToBytes()
 	}
 	// not a bigPage, is part of buddy
@@ -147,7 +147,7 @@ func (ba *buddyAllocator) getAddress(
 func (ba *buddyAllocator) getIndex(
 	addr, order uint32,
 ) (index uint32, first bool) {
-	if order >= _maxOrder {
+	if order >= MaxOrder {
 		return addr / models.Size4MB.ToBytes(), false
 	}
 	pageIndex := addr / models.Size4KB.ToBytes() / (1 << order)
@@ -166,16 +166,16 @@ func (ba *buddyAllocator) getBuddyAddress(
 // Allocate 2^order number of pages and return physical address of the first
 // page frame. Will return ok as false if it failed to allocate.
 func (ba *buddyAllocator) Allocate(order uint32) (addr uint32, ok bool) {
-	if order >= _maxOrder {
+	if order >= MaxOrder {
 		// we need order / _maxOrder pages
-		n := order / _maxOrder
-		index, ok := ba.buddies[_maxOrder].freeMap.FirstContiguousSet(n)
+		n := order / MaxOrder
+		index, ok := ba.buddies[MaxOrder].freeMap.FirstContiguousSet(n)
 		if !ok {
 			return 0, false
 		}
 		// Mark n pages from index as used
 		for i := uint32(0); i < n; i++ {
-			ba.buddies[_maxOrder].freeMap.Reset(index + i)
+			ba.buddies[MaxOrder].freeMap.Reset(index + i)
 		}
 		return ba.getAddress(index, order, false), true
 	}
@@ -194,7 +194,7 @@ func (ba *buddyAllocator) Allocate(order uint32) (addr uint32, ok bool) {
 	// The hard part, check higher order for free page
 	higherOrder := order + 1
 	higherOrderIndex := uint32(0)
-	for higherOrder < _maxOrder {
+	for higherOrder < MaxOrder {
 		// Check if higherOrder freeBuddiesList has free page
 		if !ba.buddies[higherOrder].freeList.IsEmpty() {
 			higherOrderAddr := ba.buddies[higherOrder].freeList.Head().Value()
@@ -207,13 +207,13 @@ func (ba *buddyAllocator) Allocate(order uint32) (addr uint32, ok bool) {
 		higherOrder++
 	}
 
-	if higherOrder == _maxOrder {
-		higherOrderIndex, ok = ba.buddies[_maxOrder].freeMap.FirstSet()
+	if higherOrder == MaxOrder {
+		higherOrderIndex, ok = ba.buddies[MaxOrder].freeMap.FirstSet()
 		if !ok {
 			return 0, false
 		}
 		// mark higherOrderIndex as used
-		ba.buddies[_maxOrder].freeMap.Reset(higherOrderIndex)
+		ba.buddies[MaxOrder].freeMap.Reset(higherOrderIndex)
 	}
 
 	// till we reach desired order
@@ -221,7 +221,7 @@ func (ba *buddyAllocator) Allocate(order uint32) (addr uint32, ok bool) {
 		// go to previous order
 		higherOrder--
 		// previous order index is x2, unless we are on _maxOrder - 1
-		if higherOrder < _maxOrder-1 {
+		if higherOrder < MaxOrder-1 {
 			higherOrderIndex <<= 1
 		}
 
@@ -246,18 +246,18 @@ func (ba *buddyAllocator) Allocate(order uint32) (addr uint32, ok bool) {
 func (ba *buddyAllocator) Release(addr, order uint32) {
 	index, first := ba.getIndex(addr, order)
 
-	if order >= _maxOrder {
+	if order >= MaxOrder {
 		// we need to free order / _maxOrder pages
-		n := order / _maxOrder
+		n := order / MaxOrder
 		// Mark n pages from index as free
 		for i := uint32(0); i < n; i++ {
-			ba.buddies[_maxOrder].freeMap.Set(index + i)
+			ba.buddies[MaxOrder].freeMap.Set(index + i)
 		}
 		return
 	}
 
 	// go up until we get a buddy with one page allocated
-	for order <= _maxOrder {
+	for order <= MaxOrder {
 		// check if other buddy is still allocated
 		if !ba.buddies[order].freeMap.IsSet(index) {
 			// mark buddy as free
@@ -286,12 +286,12 @@ func (ba *buddyAllocator) Release(addr, order uint32) {
 func (ba *buddyAllocator) Mark(addr, order uint32) {
 	index, first := ba.getIndex(addr, order)
 
-	if order >= _maxOrder {
+	if order >= MaxOrder {
 		// we need to mark order / _maxOrder pages
-		n := order / _maxOrder
+		n := order / MaxOrder
 		// Mark n pages from index as allocated
 		for i := uint32(0); i < n; i++ {
-			ba.buddies[_maxOrder].freeMap.Reset(index + i)
+			ba.buddies[MaxOrder].freeMap.Reset(index + i)
 		}
 		return
 	}
