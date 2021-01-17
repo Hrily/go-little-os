@@ -1,6 +1,7 @@
 package idt
 
 import (
+	"kernel/lib/logger"
 	"unsafe"
 )
 
@@ -17,7 +18,9 @@ func LoadIDT(address uint32, size uint16)
 // Init loads interrupt descriptor table
 func Init() {
 	address := uint32(uintptr(unsafe.Pointer(&_idt)))
-	size := uint16(256 * 4)
+	size := uint16(len(_idt)) * uint16(unsafe.Sizeof(DescriptorRecord(0)))
+
+	logger.COM().LogUint(logger.Debug, "IDT Addr", uint64(address))
 
 	LoadIDT(address, size)
 }

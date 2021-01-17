@@ -6,23 +6,6 @@ import (
 	"kernel/modules/init"
 )
 
-type I interface {
-	F()
-}
-
-type S struct{}
-
-func (s *S) F() {
-	logger.COM().Info("F()")
-}
-
-var _s S = S{}
-
-func f() {
-	var i I = &_s
-	i.F()
-}
-
 // Main is the first function which is called
 func Main(p models.KernelParams) {
 	logger.COM().LogUint(
@@ -39,5 +22,4 @@ func Main(p models.KernelParams) {
 	)
 
 	init.Init(p)
-	f()
 }
