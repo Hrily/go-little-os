@@ -5,7 +5,6 @@ import (
 	"kernel/modules/io/interrupts/exceptions"
 	"kernel/modules/io/interrupts/models"
 	"kernel/modules/io/interrupts/pic"
-	"kernel/modules/io/interrupts/systemcall"
 )
 
 func InterruptHandler(r models.Registers) {
@@ -16,8 +15,6 @@ func InterruptHandler(r models.Registers) {
 		exceptions.Handle(r)
 	case 0x20 <= r.IntNumber && r.IntNumber <= 0x2f:
 		pic.Handle(r)
-	case r.IntNumber == 0x80:
-		systemcall.Handle(r)
 	default:
 		logger.COM().Error("Unknown Interrupt")
 	}

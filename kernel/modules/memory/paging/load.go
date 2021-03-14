@@ -4,6 +4,7 @@ import (
 	"kernel/lib/logger"
 	"kernel/modules/memory/paging/allocator/buddy"
 	"kernel/modules/memory/paging/models"
+	"kernel/modules/process/processinfo"
 	"kernel/utils/pointer"
 )
 
@@ -87,4 +88,12 @@ func LoadKernelPDT(pAddr, vAddr, size uint32) {
 	// initialize buddyAllocator
 	buddy.InitAllocator(buddyAllocatorVAddr)
 	logger.COM().Info("buddyAllocator initialized succesfully")
+
+	// Update process section info
+	processinfo.KernelSectionDataText.StartAddr = vAddr
+	processinfo.KernelSectionDataText.Size = size
+	processinfo.KernelSectionDataText.Capacity = size
+	processinfo.KernelSectionHeap.StartAddr = vAddr + size
+	processinfo.KernelSectionHeap.Size = 0
+	processinfo.KernelSectionHeap.Capacity = nPages*_4mb - size
 }

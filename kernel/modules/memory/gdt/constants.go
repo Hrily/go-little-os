@@ -79,10 +79,21 @@ const tlsStorageSize = 1024
 
 var tlsStorage = [tlsStorageSize]byte{}
 
+// KernelTSSSegmentAccess are access values for kernel Data segment
+var KernelTSSSegmentAccess = Access{
+	IsPresentInMemory: true,
+	PrivilageLevel:    Ring3,
+	DescriptorType:    CodeOrDataDescriptor,
+	IsExecutable:      false,
+	IsExpandingDown:   false,
+	IsWritable:        true,
+	IsAccessed:        false,
+}
+
 // KernelTLSSegment is the kernel's thread level storage segment
 var KernelTLSSegment = Descriptor{
 	Base:   uint32(uintptr(unsafe.Pointer(&_gdtRecord))),
 	Limit:  uint32(uintptr(unsafe.Pointer(&_gdtRecord))) + tlsStorageSize,
 	Flags:  &KernelSegmentFlags,
-	Access: &KernelDataSegmentAccess,
+	Access: &KernelTSSSegmentAccess,
 }

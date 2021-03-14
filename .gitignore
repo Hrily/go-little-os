@@ -3,3 +3,5 @@ bochslog.txt
 serial.out
 *.o
 *.swp
+*.swo
+*.swn

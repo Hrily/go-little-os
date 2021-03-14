@@ -43,12 +43,13 @@ var _gdtRecord = [nDescriptors]DescriptorRecord{
 func LoadGDT(gdtAddr uint32, gdtSize uint16)
 
 // AddToGDT adds given descriptor at index
-func AddToGDT(index int, d *Descriptor) {
+func AddToGDT(index int, d *Descriptor) bool {
 	if index > len(_gdt) {
 		logger.COM().Error("index greater than gdt size")
-		return
+		return false
 	}
 	_gdtRecord[index] = d.ToDescriptorRecord()
+	return true
 }
 
 // Init initializes gdt and loads it

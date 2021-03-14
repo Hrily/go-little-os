@@ -6,6 +6,14 @@ import (
 	"kernel/modules/init"
 )
 
+type S struct {
+	A uint32
+}
+
+func f() *S {
+	return &S{A: 32}
+}
+
 // Main is the first function which is called
 func Main(p models.KernelParams) {
 	logger.COM().LogUint(
@@ -22,4 +30,8 @@ func Main(p models.KernelParams) {
 	)
 
 	init.Init(p)
+	s := f()
+	logger.COM().LogUint(
+		logger.Info, "S.A ", uint64(s.A),
+	)
 }
