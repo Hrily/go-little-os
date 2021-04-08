@@ -92,8 +92,8 @@ var KernelTSSSegmentAccess = Access{
 
 // KernelTLSSegment is the kernel's thread level storage segment
 var KernelTLSSegment = Descriptor{
-	Base:   uint32(uintptr(unsafe.Pointer(&_gdtRecord))),
-	Limit:  uint32(uintptr(unsafe.Pointer(&_gdtRecord))) + tlsStorageSize,
+	Base:   uint32(uintptr(unsafe.Pointer(&tlsStorage))),
+	Limit:  uint32(uintptr(unsafe.Pointer(&tlsStorage))) + tlsStorageSize,
 	Flags:  &KernelSegmentFlags,
 	Access: &KernelTSSSegmentAccess,
 }

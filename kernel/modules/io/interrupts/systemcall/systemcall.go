@@ -18,6 +18,14 @@ func SystemCall(p Params) uint32 {
 	switch p.EAX {
 	case 0x2d:
 		return brk(uint32(p.EBX))
+	case 0xc7:
+		return geteuid()
+	case 0xc8:
+		return getgid()
+	case 0xc9:
+		return geteuid()
+	case 0xca:
+		return getegid()
 	case 0xf3:
 		return uint32(setThreadArea(uint32(p.EBX)))
 	default:
